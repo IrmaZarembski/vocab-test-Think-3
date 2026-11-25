@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocabulary Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    color: #e94560;
+    text-shadow: 0 0 20px rgba(233,69,96,0.3);
+  }
+  .stats {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stats span {
+    background: rgba(255,255,255,0.1);
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .stats .correct { color: #4ecca3; }
+  .stats .wrong { color: #e94560; }
+  .stats .attempts { color: #ffd700; }
+  .stats .remaining { color: #87ceeb; }
+
+  .mode-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .mode-btn {
+    padding: 10px 20px;
+    border: 2px solid #e94560;
+    background: transparent;
+    color: #e0e0e0;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: all 0.3s;
+  }
+  .mode-btn:hover, .mode-btn.active {
+    background: #e94560;
+    color: white;
+    transform: scale(1.05);
+  }
+
+  .game-area {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 700px;
+    width: 100%;
+    min-height: 300px;
+    backdrop-filter: blur(10px);
+  }
+
+  .question-label {
+    font-size: 1.1em;
+    color: #87ceeb;
+    margin-bottom: 15px;
+  }
+
+  .scramble-letters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .scramble-letter {
+    width: 45px;
+    height: 45px;
+    background: rgba(233,69,96,0.3);
+    border: 2px solid #e94560;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .scramble-letter:hover {
+    background: #e94560;
+    transform: scale(1.1);
+  }
+  .scramble-letter.used {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .answer-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 50px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 2px dashed rgba(255,255,255,0.2);
+    align-items: center;
+    justify-content: center;
+  }
+  .answer-letter {
+    width: 45px;
+    height: 45px;
+    background: rgba(78,204,163,0.3);
+    border: 2px solid #4ecca3;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .answer-letter:hover {
+    background: #4ecca3;
+    color: #1a1a2e;
+  }
+
+  .fill-blanks {
+    font-size: 1.5em;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-family: monospace;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    background: rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: #e0e0e0;
+    margin-bottom: 20px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+  .input-field:focus {
+    border-color: #e94560;
+  }
+  .input-field.correct-flash {
+    border-color: #4ecca3;
+    background: rgba(78,204,163,0.1);
+  }
+  .input-field.wrong-flash {
+    border-color: #e94560;
+    background: rgba(233,69,96,0.1);
+  }
+
+  .check-btn {
+    padding: 12px 40px;
+    background: #e94560;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: block;
+    margin: 0 auto;
+  }
+  .check-btn:hover {
+    background: #ff6b81;
+    transform: scale(1.05);
+  }
+
+  .feedback {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 1.1em;
+    min-height: 30px;
+    transition: all 0.3s;
+  }
+  .feedback.correct { color: #4ecca3; }
+  .feedback.wrong { color: #e94560; }
+
+  .definition-text {
+    font-size: 1.2em;
+    color: #ffd700;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ecca3, #e94560);
+    border-radius: 4px;
+    transition: width 0.5s;
+  }
+
+  .completion-screen {
+    text-align: center;
+    padding: 40px;
+  }
+  .completion-screen h2 {
+    font-size: 2em;
+    color: #4ecca3;
+    margin-bottom: 20px;
+  }
+  .completion-screen p {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+  }
+  .restart-btn {
+    padding: 15px 40px;
+    background: #e94560;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+  }
+  .restart-btn:hover {
+    background: #ff6b81;
+    transform: scale(1.05);
+  }
+
+  .word-display {
+    font-size: 1.3em;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+
+  .mode-indicator {
+    text-align: center;
+    color: #87ceeb;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .fill-input {
+    display: inline-block;
+    width: 30px;
+    border: none;
+    border-bottom: 3px solid #e94560;
+    background: transparent;
+    color: #e94560;
+    font-size: 1em;
+    font-family: monospace;
+    text-align: center;
+    font-weight: bold;
+    outline: none;
+    margin: 0 1px;
+  }
+  .fill-input:focus {
+    border-bottom-color: #4ecca3;
+    color: #4ecca3;
+  }
+
+  .scramble-word-display {
+    font-size: 1.1em;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 15px;
+    font-style: italic;
+  }
+
+  .hint-box {
+    background: rgba(135,206,235,0.1);
+    border-left: 3px solid #87ceeb;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-style: italic;
+    color: #b0d4e8;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎮 Vocabulary Game</h1>
+
+<div class="stats">
+  <span class="correct">✅ Correct: <b id="correctCount">0</b></span>
+  <span class="wrong">❌ Wrong: <b id="wrongCount">0</b></span>
+  <span class="attempts">📝 Attempts: <b id="attemptsCount">0</b></span>
+  <span class="remaining">📋 Remaining: <b id="remainingCount">0</b></span>
+</div>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+</div>
+
+<div class="mode-selector">
+  <button class="mode-btn active" data-mode="scramble">🔀 Unscramble Letters</button>
+  <button class="mode-btn" data-mode="fillblanks">✏️ Fill in Blanks</button>
+  <button class="mode-btn" data-mode="definition">📖 From Definition</button>
+  <button class="mode-btn" data-mode="translate">🌐 Translate RU→EN</button>
+</div>
+
+<div class="game-area" id="gameArea">
+  <div class="mode-indicator" id="modeIndicator">MODE: UNSCRAMBLE LETTERS</div>
+  <div id="gameContent"></div>
+</div>
+
+<script>
+const vocabulary = [
+  // Idioms with "name"
+  { word: "a big name in", ru: "знаменитость в (какой-то области)", def: "a famous or important person in a particular field", emoji: "⭐", hint: "He is ___ skateboarding." },
+  { word: "call someone names", ru: "обзывать кого-то", def: "to insult someone by using offensive words", emoji: "😤", hint: "The other kids ___ him ___." },
+  { word: "stage name", ru: "сценическое имя", def: "a name used by a performer instead of their real name", emoji: "🎭", hint: "Jay-Z isn't his real name — it's his ___ ___." },
+  { word: "you name it", ru: "и так далее, всё что угодно", def: "used to say that almost anything you can think of is included", emoji: "🤷", hint: "Fish, meat, vegetables, fruit — ___ ___ ___." },
+  { word: "what's-his-name", ru: "как его там зовут", def: "used when you can't remember a man's name", emoji: "🤔", hint: "Look! It's ___ ___ ___." },
+  { word: "what's-her-name", ru: "как её там зовут", def: "used when you can't remember a woman's name", emoji: "🤔", hint: "Do you know ___ ___ ___?" },
+  { word: "haven't named the day yet", ru: "ещё не назначили дату", def: "the date for an event has not been decided yet", emoji: "📅", hint: "We want to get married, but we ___ ___ ___ ___ ___ ___." },
+  { word: "the name of the game", ru: "суть дела", def: "the most important aspect of something", emoji: "🎯", hint: "I know you don't want to do exams, but it's ___ ___ ___ ___ ___ for university entry." },
+  { word: "make a name for oneself", ru: "прославиться", def: "to become famous or well-known", emoji: "🌟", hint: "He ___ ___ ___ ___ ___ as a great actor." },
+
+  // Honesty idioms
+  { word: "cheat", ru: "жульничать", def: "to act dishonestly in order to gain an advantage", emoji: "🃏", hint: "He tried to ___ on the exam." },
+  { word: "get away with something", ru: "избежать наказания", def: "to do something wrong without being punished", emoji: "🏃", hint: "If you lie, you might ___ ___ ___ ___." },
+  { word: "hide the truth", ru: "скрывать правду", def: "to not tell people what really happened", emoji: "🙈", hint: "Don't ___ ___ ___ from your friends." },
+  { word: "do the right thing", ru: "поступать правильно", def: "to behave in a morally correct way", emoji: "✅", hint: "Always try to ___ ___ ___ ___." },
+  { word: "tell a lie", ru: "лгать", def: "to say something that is not true", emoji: "🤥", hint: "It's wrong to ___ ___ ___." },
+  { word: "be open about something", ru: "быть откровенным", def: "to be honest and not hide your feelings or thoughts", emoji: "💬", hint: "You should ___ ___ ___ your problems." },
+  { word: "tell the truth", ru: "говорить правду", def: "to say what really happened", emoji: "🗣️", hint: "Please ___ ___ ___ about what happened." },
+  { word: "own up to something", ru: "признаться в чём-то", def: "to admit that you did something wrong", emoji: "🙋", hint: "You need to ___ ___ ___ your mistake." },
+
+  // Life plans
+  { word: "retire", ru: "уйти на пенсию", def: "to stop working because of age", emoji: "🏖️", hint: "He wants to ___ at 60." },
+  { word: "travel the world", ru: "путешествовать по миру", def: "to visit many different countries", emoji: "✈️", hint: "She dreams to ___ ___ ___." },
+  { word: "start a career", ru: "начать карьеру", def: "to begin working in a particular profession", emoji: "💼", hint: "She wants to ___ ___ ___ in medicine." },
+  { word: "get a degree", ru: "получить диплом", def: "to complete a university course successfully", emoji: "🎓", hint: "He needs to ___ ___ ___ to get a good job." },
+  { word: "start a family", ru: "создать семью", def: "to get married and have children", emoji: "👨‍👩‍👧", hint: "They plan to ___ ___ ___ next year." },
+  { word: "settle down", ru: "остепениться", def: "to start living a quiet life in one place", emoji: "🏡", hint: "After years of traveling, he wants to ___ ___." },
+  { word: "get promoted", ru: "получить повышение", def: "to be given a higher position at work", emoji: "📈", hint: "She hopes to ___ ___ this year." },
+  { word: "leave school", ru: "закончить школу", def: "to finish studying at school", emoji: "🏫", hint: "He will ___ ___ at 18." },
+
+  // Business
+  { word: "advertisement", ru: "реклама", def: "a notice or announcement promoting a product", emoji: "📢", hint: "I saw an ___ for a new phone." },
+  { word: "brand", ru: "бренд", def: "a type of product made by a particular company", emoji: "🏷️", hint: "Nike is a famous sports ___." },
+  { word: "chain", ru: "сеть (магазинов)", def: "a group of shops or restaurants owned by the same company", emoji: "🔗", hint: "McDonald's is a fast food ___." },
+  { word: "consumer", ru: "потребитель", def: "a person who buys goods or services", emoji: "🛒", hint: "The ___ has the right to choose." },
+  { word: "image", ru: "имидж", def: "the general impression that a company or person gives", emoji: "📸", hint: "The company wants to improve its ___." },
+  { word: "logo", ru: "логотип", def: "a symbol or design used by a company", emoji: "🎨", hint: "The Apple ___ is very recognizable." },
+  { word: "manufacturer", ru: "производитель", def: "a company that makes products", emoji: "🏭", hint: "The ___ of this car is German." },
+  { word: "products", ru: "продукты, товары", def: "things that are made to be sold", emoji: "📦", hint: "The store sells many different ___." },
+
+  // Verbs
+  { word: "smash", ru: "разбивать", def: "to break something violently into pieces", emoji: "💥", hint: "Don't ___ the window!" },
+  { word: "rage", ru: "бушевать, яриться", def: "to feel or show very strong anger", emoji: "😡", hint: "He began to ___ when he lost the game." },
+  { word: "dive", ru: "нырять", def: "to jump into water head first", emoji: "🤿", hint: "She loves to ___ into the pool." },
+  { word: "flee", ru: "бежать, спасаться бегством", def: "to run away from danger", emoji: "🏃‍♂️", hint: "They had to ___ from the burning building." },
+  { word: "demolish", ru: "сносить (здание)", def: "to completely destroy a building", emoji: "🏚️", hint: "They will ___ the old factory." },
+  { word: "grab", ru: "хватать", def: "to take hold of something suddenly and roughly", emoji: "✊", hint: "___ your coat and let's go!" },
+  { word: "scream", ru: "кричать", def: "to make a loud, high sound because of fear or excitement", emoji: "😱", hint: "She began to ___ when she saw the spider." }
+];
+
+let currentMode = 'scramble';
+let correctCount = 0;
+let wrongCount = 0;
+let attemptsCount = 0;
+let mainQueue = [];
+let wrongQueue = [];
+let currentItem = null;
+let isFinalRound = false;
+
+const modeNames = {
+  scramble: 'MODE: UNSCRAMBLE LETTERS',
+  fillblanks: 'MODE: FILL IN BLANKS',
+  definition: 'MODE: FROM DEFINITION',
+  translate: 'MODE: TRANSLATE RU → EN'
+};
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function init() {
+  mainQueue = shuffle(vocabulary.map((_, i) => i));
+  wrongQueue = [];
+  correctCount = 0;
+  wrongCount = 0;
+  attemptsCount = 0;
+  isFinalRound = false;
+  updateStats();
+  nextQuestion();
+}
+
+function updateStats() {
+  document.getElementById('correctCount').textContent = correctCount;
+  document.getElementById('wrongCount').textContent = wrongCount;
+  document.getElementById('attemptsCount').textContent = attemptsCount;
+  const total = vocabulary.length;
+  const remaining = isFinalRound ? wrongQueue.length : (mainQueue.length + wrongQueue.length);
+  document.getElementById('remainingCount').textContent = remaining;
+  const done = total - remaining;
+  document.getElementById('progressFill').style.width = (done / total * 100) + '%';
+}
+
+function getNextItem() {
+  if (mainQueue.length > 0) {
+    const idx = mainQueue.pop();
+    return { item: vocabulary[idx], index: idx, fromWrong: false };
+  }
+  if (wrongQueue.length > 0) {
+    isFinalRound = true;
+    const idx = wrongQueue.pop();
+    return { item: vocabulary[idx], index: idx, fromWrong: true };
+  }
+  return null;
+}
+
+function nextQuestion() {
+  const result = getNextItem();
+  if (!result) {
+    showCompletion();
+    return;
+  }
+  currentItem = result;
+  const content = document.getElementById('gameContent');
+  const indicator = document.getElementById('modeIndicator');
+  indicator.textContent = modeNames[currentMode];
+
+  if (isFinalRound && result.fromWrong) {
+    indicator.textContent += ' ⚠️ FINAL ROUND';
+  }
+
+  switch (currentMode) {
+    case 'scramble': renderScramble(content, result.item); break;
+    case 'fillblanks': renderFillBlanks(content, result.item); break;
+    case 'definition': renderDefinition(content, result.item); break;
+    case 'translate': renderTranslate(content, result.item); break;
+  }
+}
+
+// MODE 1: Unscramble Letters
+function renderScramble(container, item) {
+  const word = item.word;
+  const letters = word.split('').map((ch, i) => ({ ch, i }));
+  const shuffled = shuffle(letters);
+
+  container.innerHTML = `
+    <div class="scramble-word-display">Translation: "${item.ru}"</div>
+    <div class="scramble-letters" id="sourceLetters">
+      ${shuffled.map((l) => `<div class="scramble-letter" data-idx="${l.i}" data-ch="${l.ch}" onclick="moveToAnswer(this)">${l.ch === ' ' ? '&nbsp;' : l.ch}</div>`).join('')}
+    </div>
+    <div class="answer-area" id="answerArea" onclick="moveToSource(event)"></div>
+    <button class="check-btn" onclick="checkScramble()">Check</button>
+    <div class="feedback" id="feedback"></div>
+  `;
+}
+
+function moveToAnswer(el) {
+  if (el.classList.contains('used')) return;
+  el.classList.add('used');
+  const answerArea = document.getElementById('answerArea');
+  const clone = document.createElement('div');
+  clone.className = 'answer-letter';
+  clone.textContent = el.dataset.ch === ' ' ? '\u00A0' : el.dataset.ch;
+  clone.dataset.idx = el.dataset.idx;
+  clone.dataset.ch = el.dataset.ch;
+  clone.onclick = function() { moveToSourceEl(this, el); };
+  answerArea.appendChild(clone);
+}
+
+function moveToSourceEl(answerEl, sourceEl) {
+  sourceEl.classList.remove('used');
+  answerEl.remove();
+}
+
+function moveToSource(e) {
+  if (e.target.classList.contains('answer-letter')) {
+    const idx = e.target.dataset.idx;
+    const sourceLetters = document.querySelectorAll('#sourceLetters .scramble-letter');
+    sourceLetters.forEach(sl => {
+      if (sl.dataset.idx === idx) sl.classList.remove('used');
+    });
+    e.target.remove();
+  }
+}
+
+function checkScramble() {
+  const answerArea = document.getElementById('answerArea');
+  const letters = Array.from(answerArea.querySelectorAll('.answer-letter')).map(el => el.dataset.ch);
+  const answer = letters.join('');
+  const correct = currentItem.item.word;
+  attemptsCount++;
+
+  if (answer.toLowerCase().trim() === correct.toLowerCase().trim()) {
+    correctCount++;
+    showFeedback(true, `✅ Correct! "${correct}"`);
+    setTimeout(() => { nextQuestion(); updateStats(); }, 1500);
+  } else {
+    wrongCount++;
+    if (!wrongQueue.includes(currentItem.index)) {
+      wrongQueue.push(currentItem.index);
+    }
+    showFeedback(false, `❌ Wrong. Correct answer: "${correct}"`);
+    setTimeout(() => { nextQuestion(); updateStats(); }, 2500);
+  }
+  updateStats();
+}
+
+// MODE 2: Fill in Blanks
+function renderFillBlanks(container, item) {
+  const word = item.word;
+  const chars = word.split('');
+  const blankIndices = new Set();
+  const numBlanks = Math.max(1, Math.floor(chars.filter(c => c !== ' ').length * 0.4));
+  const nonSpaceIndices = chars.map((c, i) => c !== ' ' ? i : -1).filter(i => i >= 0);
+  const shuffledIdx = shuffle(nonSpaceIndices);
+  for (let i = 0; i < Math.min(numBlanks, shuffledIdx.length); i++) {
+    blankIndices.add(shuffledIdx[i]);
+  }
+
+  let html = `<div class="scramble-word-display">Translation: "${item.ru}"</div>`;
+  html += '<div class="fill-blanks">';
+  chars.forEach((ch, i) => {
+    if (ch === ' ') {
+      html += '&nbsp;&nbsp;';
+    } else if (blankIndices.has(i)) {
+      html += `<input class="fill-input" data-idx="${i}" maxlength="1" data-correct="${ch.toLowerCase()}">`;
+    } else {
+      html += ch;
+    }
+  });
+  html += '</div>';
+  html += `<button class="check-btn" onclick="checkFillBlanks()">Check</button>`;
+  html += `<div class="feedback" id="feedback"></div>`;
+  container.innerHTML = html;
+
+  const inputs = container.querySelectorAll('.fill-input');
+  inputs.forEach((inp, i) => {
+    inp.addEventListener('input', function() {
+      if (this.value && inputs[i + 1]) inputs[i + 1].focus();
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Backspace' && !this.value && inputs[i - 1]) inputs[i - 1].focus();
+      if (e.key === 'Enter') checkFillBlanks();
+    });
+  });
+  if (inputs[0]) inputs[0].focus();
+}
+
+function checkFillBlanks() {
+  const inputs = document.querySelectorAll('.fill-input');
+  let allCorrect = true;
+  inputs.forEach(inp => {
+    if (inp.value.toLowerCase() !== inp.dataset.correct) {
+      allCorrect = false;
+    }
+  });
+  attemptsCount++;
+
+  if (allCorrect) {
+    correctCount++;
+    showFeedback(true, `✅ Correct! "${currentItem.item.word}"`);
+    inputs.forEach(inp => { inp.style.borderBottomColor = '#4ecca3'; inp.style.color = '#4ecca3'; });
+    setTimeout(() => { nextQuestion(); updateStats(); }, 1500);
+  } else {
+    wrongCount++;
+    if (!wrongQueue.includes(currentItem.index)) wrongQueue.push(currentItem.index);
+    showFeedback(false, `❌ Wrong. Correct answer: "${currentItem.item.word}"`);
+    inputs.forEach(inp => {
+      if (inp.value.toLowerCase() !== inp.dataset.correct) {
+        inp.style.borderBottomColor = '#e94560';
+        inp.value = inp.dataset.correct;
+        inp.style.color = '#4ecca3';
+      }
+    });
+    setTimeout(() => { nextQuestion(); updateStats(); }, 2500);
+  }
+  updateStats();
+}
+
+// MODE 3: From Definition
+function renderDefinition(container, item) {
+  container.innerHTML = `
+    <div class="definition-text">"${item.def}"</div>
+    <div class="hint-box">💡 Hint: ${item.hint}</div>
+    <div class="question-label">Write the word or phrase in English:</div>
+    <input class="input-field" id="defInput" placeholder="Type your answer..." autocomplete="off">
+    <button class="check-btn" onclick="checkDefinition()">Check</button>
+    <div class="feedback" id="feedback"></div>
+  `;
+  const inp = document.getElementById('defInput');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') checkDefinition(); });
+}
+
+function checkDefinition() {
+  const answer = document.getElementById('defInput').value.trim().toLowerCase();
+  const correct = currentItem.item.word.toLowerCase().trim();
+  attemptsCount++;
+
+  if (answer === correct) {
+    correctCount++;
+    showFeedback(true, `✅ Correct! "${currentItem.item.word}"`);
+    document.getElementById('defInput').classList.add('correct-flash');
+    setTimeout(() => { nextQuestion(); updateStats(); }, 1500);
+  } else {
+    wrongCount++;
+    if (!wrongQueue.includes(currentItem.index)) wrongQueue.push(currentItem.index);
+    showFeedback(false, `❌ Wrong. Correct answer: "${currentItem.item.word}"`);
+    document.getElementById('defInput').classList.add('wrong-flash');
+    setTimeout(() => { nextQuestion(); updateStats(); }, 2500);
+  }
+  updateStats();
+}
+
+// MODE 4: Translate RU → EN
+function renderTranslate(container, item) {
+  container.innerHTML = `
+    <div class="word-display">🇷🇺 "${item.ru}"</div>
+    <div class="hint-box">💡 Context: ${item.hint}</div>
+    <div class="question-label">Translate to English:</div>
+    <input class="input-field" id="transInput" placeholder="Type the translation..." autocomplete="off">
+    <button class="check-btn" onclick="checkTranslate()">Check</button>
+    <div class="feedback" id="feedback"></div>
+  `;
+  const inp = document.getElementById('transInput');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') checkTranslate(); });
+}
+
+function checkTranslate() {
+  const answer = document.getElementById('transInput').value.trim().toLowerCase();
+  const correct = currentItem.item.word.toLowerCase().trim();
+  attemptsCount++;
+
+  if (answer === correct) {
+    correctCount++;
+    showFeedback(true, `✅ Correct! "${currentItem.item.word}"`);
+    document.getElementById('transInput').classList.add('correct-flash');
+    setTimeout(() => { nextQuestion(); updateStats(); }, 1500);
+  } else {
+    wrongCount++;
+    if (!wrongQueue.includes(currentItem.index)) wrongQueue.push(currentItem.index);
+    showFeedback(false, `❌ Wrong. Correct answer: "${currentItem.item.word}"`);
+    document.getElementById('transInput').classList.add('wrong-flash');
+    setTimeout(() => { nextQuestion(); updateStats(); }, 2500);
+  }
+  updateStats();
+}
+
+function showFeedback(isCorrect, text) {
+  const fb = document.getElementById('feedback');
+  fb.textContent = text;
+  fb.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
+}
+
+function showCompletion() {
+  const content = document.getElementById('gameContent');
+  const indicator = document.getElementById('modeIndicator');
+  indicator.textContent = 'GAME COMPLETE! 🎉';
+  const total = correctCount + wrongCount;
+  const pct = total > 0 ? Math.round(correctCount / total * 100) : 0;
+  content.innerHTML = `
+    <div class="completion-screen">
+      <h2>🎉 Congratulations!</h2>
+      <p>You've completed all words!</p>
+      <p>✅ Correct answers: <b>${correctCount}</b></p>
+      <p>❌ Mistakes: <b>${wrongCount}</b></p>
+      <p>📝 Total attempts: <b>${attemptsCount}</b></p>
+      <p>📊 Accuracy: <b>${pct}%</b></p>
+      <button class="restart-btn" onclick="init()">🔄 Start Over</button>
+    </div>
+  `;
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    currentMode = this.dataset.mode;
+    nextQuestion();
+  });
+});
+
+init();
+</script>
+</body>
+</html>
